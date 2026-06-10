@@ -9,7 +9,7 @@ class Message extends Model {
         return $this->fetchAll(
             "SELECT m.annonce_id, a.titre AS annonce_titre,
                 IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id) AS interlocuteur_id,
-                u.nom AS interlocuteur_nom, MAX(m.date_envoi) AS dernier_message,
+                MAX(u.nom) AS interlocuteur_nom, MAX(m.date_envoi) AS dernier_message,
                 SUM(CASE WHEN m.destinataire_id = ? AND m.lu = 0 THEN 1 ELSE 0 END) AS non_lus
              FROM messages m JOIN annonces a ON a.id = m.annonce_id
              JOIN users u ON u.id = IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id)
