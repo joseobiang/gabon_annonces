@@ -7,14 +7,20 @@ class Message extends Model {
     }
     public function conversations($userId) {
         return $this->fetchAll(
-            "SELECT m.annonce_id, a.titre AS annonce_titre,
-                IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id) AS interlocuteur_id,
-                MAX(u.nom) AS interlocuteur_nom, MAX(m.date_envoi) AS dernier_message,
-                SUM(CASE WHEN m.destinataire_id = ? AND m.lu = 0 THEN 1 ELSE 0 END) AS non_lus
-             FROM messages m JOIN annonces a ON a.id = m.annonce_id
-             JOIN users u ON u.id = IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id)
-             WHERE m.expediteur_id = ? OR m.destinataire_id = ?
-             GROUP BY m.annonce_id, interlocuteur_id ORDER BY dernier_message DESC",
+            "SELECT sub.annonce_id, sub.annonce_titre, sub.interlocuteur_id,
+                u.nom AS interlocuteur_nom, sub.dernier_message, sub.non_lus
+             FROM (
+                SELECT m.annonce_id, a.titre AS annonce_titre,
+                    IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id) AS interlocuteur_id,
+                    MAX(m.date_envoi) AS dernier_message,
+                    SUM(CASE WHEN m.destinataire_id = ? AND m.lu = 0 THEN 1 ELSE 0 END) AS non_lus
+                FROM messages m
+                JOIN annonces a ON a.id = m.annonce_id
+                WHERE m.expediteur_id = ? OR m.destinataire_id = ?
+                GROUP BY m.annonce_id, IF(m.expediteur_id = ?, m.destinataire_id, m.expediteur_id)
+             ) sub
+             JOIN users u ON u.id = sub.interlocuteur_id
+             ORDER BY sub.dernier_message DESC",
             [$userId, $userId, $userId, $userId, $userId]);
     }
     public function conversation($userId, $otherId, $annonceId) {
